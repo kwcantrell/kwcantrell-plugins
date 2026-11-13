@@ -124,6 +124,14 @@ td.muted { color: var(--muted); font-size: 12px; }
 .draft code { font-family: var(--mono); font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; user-select: all; }
 .btn { font: inherit; font-size: 12px; color: var(--bg); background: var(--accent); border: 0; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
 .btn:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.split { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 10px 14px; align-items: center; margin: 4px 0 6px; }
+.split .who { font-size: 12px; color: var(--muted); }
+.split .who b { display: block; color: var(--fg); font-weight: 600; font-family: var(--mono); }
+.sbar { display: flex; height: 22px; border-radius: 4px; overflow: hidden; background: var(--grid); }
+.sbar span { height: 100%; min-width: 2px; }
+.slegend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--muted); margin: 10px 0 16px; }
+.slegend b { color: var(--fg); font-family: var(--mono); font-weight: 500; }
+.tchart { position: relative; min-height: 200px; margin-bottom: 16px; }
 </style>
 </head>
 <body>
@@ -151,6 +159,21 @@ td.muted { color: var(--muted); font-size: 12px; }
     <h2>Tokens per day, by model</h2>
     <p class="note">All tokens, cache reads included. Point at a day for its breakdown.</p>
     <div class="chart" id="daily"></div>
+  </section>
+
+  <section class="panel" id="time">
+    <h2>Where the time goes</h2>
+    <p class="note">Model: from sending a request to the end of the response. Tools: from the end of the response to the last tool result. Waiting on you: tool calls that needed your answer or approval. Time between turns, and the main session's wait for background subagents, are not counted; subagents' own time is in their row.</p>
+    <div class="split" id="time-split"></div>
+    <div class="slegend" id="time-legend"></div>
+    <h2>Main sessions per day</h2>
+    <div class="tchart" id="time-daily"></div>
+    <div class="grid2">
+      <div><h2>Slowest tools</h2><p class="note">Bash is split by the programs in the command. Parallel calls overlap, so totals can exceed wall-clock time.</p>
+        <div class="tw"><table><thead><tr><th>Tool</th><th class="num">Calls</th><th class="num">Total</th><th class="num">Median</th><th class="num">p90</th><th class="num">Waited on you</th></tr></thead><tbody id="time-tools"></tbody></table></div></div>
+      <div><h2>Longest single calls</h2>
+        <div class="tw"><table><thead><tr><th>Took</th><th>Call</th><th>Where</th></tr></thead><tbody id="time-slow"></tbody></table></div></div>
+    </div>
   </section>
 
   <div class="grid2">
@@ -477,6 +500,69 @@ function renderDetail() {
   });
 }
 loadPatterns();
+
+// ---- Where the time goes
+const T = {data: null, sig: ''};
+const dur = (ms) => { ms = +ms || 0; if (ms < 1000) return Math.round(ms) + 'ms'; const s = ms / 1000;
+  if (s < 60) return s.toFixed(s < 10 ? 1 : 0) + 's'; const m = s / 60; if (m < 60) return m.toFixed(m < 10 ? 1 : 0) + 'm';
+  const h = m / 60; return h.toFixed(h < 10 ? 1 : 0) + 'h'; };
+const TPARTS = [['model', 'Model', '--s2'], ['tools', 'Tools', '--s1'], ['subagent', 'Subagents (blocking)', '--s3'], ['approval', 'Waiting on you', '--s5']];
+async function loadTiming() {
+  try { const r = await fetch('/api/timing?days=' + daysSel.value, {cache: 'no-store'}); const j = await r.json();
+    if (!r.ok || j.error) throw new Error(j.error || r.statusText);
+    const s = JSON.stringify(j); if (s !== T.sig) { T.sig = s; T.data = j; renderTiming(); }
+  } catch (e) { document.getElementById('time-split').textContent = 'Could not load timing: ' + (e.message || e); }
+}
+setInterval(() => { if (!document.hidden) loadTiming(); }, 15000);
+daysSel.addEventListener('change', loadTiming);
+window.addEventListener('resize', () => { if (T.data) renderTimeDaily(); });
+function renderTiming() {
+  const d = T.data, split = document.getElementById('time-split'); split.replaceChildren();
+  const parts = TPARTS.filter(([k]) => d.main[k] + d.subagents[k] > 0);
+  [['Main sessions', d.main], ['Subagents', d.subagents]].forEach(([name, a]) => {
+    const total = parts.reduce((x, [k]) => x + a[k], 0);
+    const who = el('div', 'who', name); who.appendChild(el('b', '', dur(total)));
+    const bar = el('div', 'sbar'); bar.setAttribute('role', 'img');
+    bar.setAttribute('aria-label', name + ': ' + parts.map(([k, l]) => `${l} ${dur(a[k])}`).join(', '));
+    parts.forEach(([k, l, c]) => { if (!a[k]) return; const sp = el('span'); sp.style.width = (100 * a[k] / (total || 1)) + '%'; sp.style.background = css(c);
+      sp.title = `${l}: ${dur(a[k])} (${pct(a[k] / (total || 1))})`; bar.appendChild(sp); });
+    split.append(who, bar);
+  });
+  const lg = document.getElementById('time-legend'); lg.replaceChildren();
+  parts.forEach(([k, l, c]) => { const s = el('span'), w = el('span', 'sw'); w.style.background = css(c); s.append(w, l + ' ');
+    s.appendChild(el('b', '', `${dur(d.main[k])} · ${dur(d.subagents[k])}`)); lg.appendChild(s); });
+  const th = el('span', '', 'of model time, thinking '); th.appendChild(el('b', '', `${dur(d.main.thinking)} · ${dur(d.subagents.thinking)}`)); lg.appendChild(th);
+  lg.appendChild(el('span', '', '(main · subagents)'));
+  renderTimeDaily();
+  fill('time-tools', d.tools.slice(0, 25).map((r) => ({...r, name: r.label ? `${r.tool}: ${r.label}` : r.tool, tot: dur(r.total_ms), p50: dur(r.p50_ms), p90: dur(r.p90_ms), you: r.asked ? `${r.asked} · ${dur(r.asked_ms)}` : ''})),
+    [['name'], ['calls', 'int'], ['tot', 'r'], ['p50', 'r'], ['p90', 'r'], ['you', 'r']]);
+  const tb = document.getElementById('time-slow'); tb.replaceChildren();
+  d.slowest.slice(0, 20).forEach((c) => { const tr = el('tr');
+    const call = el('td', 'cmd clip'), code = el('code', '', (c.label ? `${c.tool}: ${c.label}` : c.tool) + (c.arg ? '\n' + c.arg : ''));
+    code.onclick = () => call.classList.toggle('clip'); call.appendChild(code);
+    tr.append(el('td', 'num', dur(c.ms)), call, el('td', 'muted', `${c.project || '?'} · ${c.sid} · ${c.agent}${c.asked ? ' · waited on you' : ''}`)); tb.appendChild(tr); });
+}
+function renderTimeDaily() {
+  const box = document.getElementById('time-daily'); box.replaceChildren();
+  const rows = T.data.daily, keys = TPARTS.filter(([k]) => d3.sum(rows, (r) => r[k]) > 0);
+  const W = Math.max(280, box.clientWidth), H = 190;
+  const y = d3.scaleLinear().domain([0, d3.max(rows, (r) => d3.sum(keys, ([k]) => r[k])) || 1]).nice().range([H - 24, 8]);
+  const svg = d3.select(box).append('svg').attr('width', '100%').attr('height', H).attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Main-session time per day: model, tools, waiting on you');
+  const ya = svg.append('g').attr('class', 'axis').call(d3.axisLeft(y).ticks(4).tickFormat(dur).tickSizeOuter(0));
+  let mw = 0; ya.selectAll('text').each(function () { mw = Math.max(mw, this.getComputedTextLength()); });
+  const ml = Math.ceil(mw) + 12; ya.attr('transform', `translate(${ml},0)`);
+  svg.insert('g', ':first-child').attr('class', 'gridl').attr('transform', `translate(${ml},0)`).call(d3.axisLeft(y).ticks(4).tickSize(-(W - ml - 4)).tickFormat(''));
+  const x = d3.scaleBand().domain(rows.map((r) => r.date)).range([ml, W - 4]).paddingInner(0.2);
+  const every = Math.max(1, Math.ceil(rows.length / Math.max(2, Math.floor((W - ml) / 70))));
+  svg.append('g').attr('class', 'axis').attr('transform', `translate(0,${H - 24})`).call(d3.axisBottom(x).tickValues(rows.map((r) => r.date).filter((_, i) => (rows.length - 1 - i) % every === 0)).tickFormat(day).tickSizeOuter(0));
+  svg.append('g').selectAll('g').data(d3.stack().keys(keys.map(([k]) => k))(rows)).join('g').attr('fill', (s) => css(TPARTS.find(([k]) => k === s.key)[2]))
+    .selectAll('rect').data((s) => s).join('rect').attr('x', (q) => x(q.data.date)).attr('width', x.bandwidth()).attr('y', (q) => y(q[1])).attr('height', (q) => Math.max(0, y(q[0]) - y(q[1])));
+  const tt = tooltip(box);
+  svg.append('g').selectAll('rect').data(rows).join('rect').attr('x', (r) => x(r.date) - x.step() * 0.1).attr('width', x.step()).attr('y', 0).attr('height', H - 24).attr('fill', 'transparent')
+    .on('pointerenter pointermove', (ev, r) => { const [px, py] = d3.pointer(ev, box); tt.show([[day(r.date)], ...keys.filter(([k]) => r[k]).map(([k, l, c]) => [`${l}: ${dur(r[k])}`, 0, css(c)])], px, py); })
+    .on('pointerleave', () => tt.hide());
+}
+loadTiming();
 if (location.hash === '#bash') openBash();
 if (location.hash === '#patterns') document.getElementById('patterns').scrollIntoView();
 poll();

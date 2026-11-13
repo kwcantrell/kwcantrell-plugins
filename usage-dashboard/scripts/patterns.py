@@ -61,9 +61,10 @@ def seg_program(part):
         return None
     while words and words[0] in LEADERS:
         words = words[1:]
-    while words and (ASSIGN.match(words[0]) or words[0] in WRAPPERS):
+    while words and (ASSIGN.match(words[0]) or words[0] in WRAPPERS or re.fullmatch(r"\d+(\.\d+)?[smhd]?", words[0])
+                     or (words[0].startswith("-") and len(words) > 1)):
         words = words[1:]
-    if not words or words[0].startswith("$") or words[0].startswith("-"):
+    if not words or words[0].startswith("$") or words[0].startswith("-") or words[0] in ("break", "continue", "do", "done"):
         return None
     name = words[0].rsplit("/", 1)[-1]
     if name in SKIP:

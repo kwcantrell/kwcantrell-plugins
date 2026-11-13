@@ -5,6 +5,7 @@
 GET /              the dashboard page (web/index.html)
 GET /api/usage     the export_dashboard.build() JSON; ?days=1..90 (default 30)
 GET /api/bash      Bash commands by program; ?days=, ?program=, ?q=
+GET /api/timing    model vs tool vs waiting-on-you time (timing.py); ?days=
 GET /api/patterns  skill candidates (patterns.py); ?days=, ?id= for one with all examples
 
 Each API call backfills ~/.claude/usage-events from transcripts and re-aggregates
@@ -24,6 +25,7 @@ sys.path.insert(0, str(HERE))
 import bash_commands  # noqa: E402
 import export_dashboard  # noqa: E402
 import patterns  # noqa: E402
+import timing  # noqa: E402
 
 PAGE = HERE.parent / "web" / "index.html"
 TTL = 3.0
@@ -60,6 +62,20 @@ def pattern_list(days, pid):
     return json.dumps({**head, "patterns": rows}, separators=(",", ":")).encode()
 
 
+_time_lock = threading.Lock()
+_time_cache = {}
+
+
+def timing_summary(days):
+    with _time_lock:
+        hit = _time_cache.get(days)
+        if hit and time.monotonic() - hit[0] < 10.0:
+            return hit[1]
+        body = json.dumps(timing.summarize(timing.collect(days), days), separators=(",", ":")).encode()
+        _time_cache[days] = (time.monotonic(), body)
+        return body
+
+
 def usage(days):
     with _lock:
         hit = _cache.get(days)
@@ -83,7 +99,7 @@ class Handler(BaseHTTPRequestHandler):
         url = urlparse(self.path)
         if url.path in ("/", "/index.html"):
             return self.send(200, PAGE.read_bytes(), "text/html; charset=utf-8")
-        if url.path in ("/api/usage", "/api/bash", "/api/patterns"):
+        if url.path in ("/api/usage", "/api/bash", "/api/patterns", "/api/timing"):
             qs = parse_qs(url.query)
             try:
                 days = int(qs.get("days", ["30"])[0])
@@ -91,6 +107,8 @@ class Handler(BaseHTTPRequestHandler):
                 days = 30
             days = max(1, min(90, days))
             try:
+                if url.path == "/api/timing":
+                    return self.send(200, timing_summary(days), "application/json")
                 if url.path == "/api/patterns":
                     return self.send(200, pattern_list(days, qs.get("id", [""])[0][:20]), "application/json")
                 if url.path == "/api/bash":
