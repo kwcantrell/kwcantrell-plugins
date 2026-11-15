@@ -2,5 +2,8 @@
   "name": "usage-dashboard",
   "version": "0.2.0",
   "description": "Usage dashboards: an in-terminal pane, a live localhost page (tokens, sessions, tools, Bash commands) and skill candidates mined from tool-call patterns",
+  "author": {
+    "name": "Kalen Cantrell"
+  },
   "types": "./types/index.d.ts"
 }
