@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Usage: install.sh [all|impeccable|shadcn]...   (default: all)
 #
-# Idempotent user-level install of the web plugin's skills into ~/.claude/skills via `npx skills`:
-#   impeccable  pbakaus/impeccable --skill impeccable   (design, critique, audit, polish)
-#   shadcn      shadcn-ui/ui --skill shadcn             (shadcn components, registries, presets)
+# Idempotent install of the web plugin's skills into the current project's root (not the user config):
+#   shadcn      npx skills add shadcn/ui          -> .claude/skills/shadcn (+ migrate-radix-to-base), skills-lock.json
+#   impeccable  npx impeccable install            -> .claude/skills/impeccable, .claude/agents/impeccable-*,
+#                                                    its design hook in .claude/settings.local.json
+# The project root is $CLAUDE_PROJECT_DIR, else the git top level, else the current directory.
 # The shadcn MCP server ships with the plugin (.mcp.json) and needs no install.
 set -euo pipefail
 
@@ -12,17 +14,26 @@ die() { printf '\033[31m[web] %s\033[0m\n' "$*" >&2; exit 1; }
 
 command -v npx >/dev/null 2>&1 || die "npx is required but not on PATH. Install Node.js first."
 
-skills_add() {  # skills_add <repo> <skill>
-  log "installing $2 skill ($1)"
-  npx -y skills add "$1" --skill "$2" -g -a claude-code -y
+root="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+cd "$root" || die "cannot enter project root: $root"
+log "project root: $root"
+
+install_shadcn() {
+  log "installing the shadcn skill (npx skills add shadcn/ui)"
+  npx -y skills add shadcn/ui -a claude-code -y
+}
+
+install_impeccable() {
+  log "installing impeccable (npx impeccable install)"
+  npx -y impeccable install --project --providers=claude -y
 }
 
 [ $# -eq 0 ] && set -- all
 for step in "$@"; do
   case "$step" in
-    all)        skills_add pbakaus/impeccable impeccable; skills_add shadcn-ui/ui shadcn ;;
-    impeccable) skills_add pbakaus/impeccable impeccable ;;
-    shadcn)     skills_add shadcn-ui/ui shadcn ;;
+    all)        install_shadcn; install_impeccable ;;
+    shadcn)     install_shadcn ;;
+    impeccable) install_impeccable ;;
     *) die "unknown step: $step (expected all|impeccable|shadcn)" ;;
   esac
 done
