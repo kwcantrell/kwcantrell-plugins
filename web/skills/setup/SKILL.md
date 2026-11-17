@@ -2,17 +2,9 @@
 name: setup
 description: Install the web plugin's skills (shadcn and impeccable) into the current project. Use when the user asks to set up the web plugin or install impeccable or the shadcn skill.
 disable-model-invocation: true
-argument-hint: "[all|impeccable|shadcn]"
-allowed-tools: Bash(bash ${CLAUDE_PLUGIN_ROOT}/scripts/install.sh:*)
 ---
 
 # Web setup
-
-Run the installer with the steps the user asked for (default `all`):
-
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/install.sh" $ARGUMENTS
-```
 
 It is idempotent and installs into the **project root** (`$CLAUDE_PROJECT_DIR`, else the git top level,
 else the current directory), never the user config:
