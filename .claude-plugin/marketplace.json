@@ -4,7 +4,7 @@
     "name": "Kalen Cantrell"
   },
   "metadata": {
-    "description": "Kalen Cantrell's Claude Code plugins: a multi-agent software factory, usage dashboards and context tools"
+    "description": "Kalen Cantrell's Claude Code plugins: a multi-agent software factory, a base user setup and a shadcn-only web setup"
   },
   "plugins": [
     {
@@ -13,14 +13,14 @@
       "description": "Software Factory: a multi-agent line with isolated builds, independent proof, three reviewers and a human merge gate"
     },
     {
-      "name": "usage-dashboard",
-      "source": "./usage-dashboard",
-      "description": "Usage dashboard pane, live localhost dashboard and skill candidates"
+      "name": "base-setup",
+      "source": "./base-setup",
+      "description": "User setup: agent-browser on system Chromium, the find-skills skill, and a status line"
     },
     {
-      "name": "context-explorer",
-      "source": "./context-explorer",
-      "description": "A pane to browse everything loaded into the context: CLAUDE.md and MEMORY.md files, system prompt sections, skills and tools"
+      "name": "web",
+      "source": "./web",
+      "description": "Frontend: impeccable and shadcn skills, the shadcn MCP server, and a hook that enforces shadcn-only UI"
     }
   ]
 }

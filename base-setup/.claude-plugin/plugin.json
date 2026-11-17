@@ -1,0 +1,16 @@
+{
+  "name": "base-setup",
+  "displayName": "Base Setup",
+  "version": "0.2.0",
+  "description": "One-shot user setup (agent-browser on system Chromium, find-skills, codegraph, a status line) and an /inventory pane of skills, plugins and MCP servers by scope.",
+  "author": {
+    "name": "Kalen Cantrell"
+  },
+  "keywords": [
+    "setup",
+    "agent-browser",
+    "skills",
+    "statusline"
+  ],
+  "types": "./types/index.d.ts"
+}

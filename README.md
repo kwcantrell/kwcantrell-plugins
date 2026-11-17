@@ -5,12 +5,14 @@ My Claude Code plugins, published as one marketplace.
 ```
 /plugin marketplace add kwcantrell/kwcantrell-plugins
 /plugin install factory@kwcantrell-plugins
+/plugin install base-setup@kwcantrell-plugins   # then run /base-setup:setup
+/plugin install web@kwcantrell-plugins          # then run /web:setup
 ```
 
 | Plugin | What it does |
 | --- | --- |
 | [`factory`](factory/README.md) | Software Factory: runs a request through intake, an isolated build, independent proof, three reviewers and a human merge gate, with a live dashboard. |
-| `usage-dashboard` | A usage pane in the terminal, a live localhost dashboard (tokens, sessions, tools, Bash commands, where the time goes) and skill candidates mined from repeated tool calls. |
-| `context-explorer` | A pane to browse everything loaded into the context: CLAUDE.md and MEMORY.md files, system prompt sections, skills and tools. |
+| `base-setup` | Run `/base-setup:setup` once per machine: installs agent-browser (pointed at system Chromium, headed unless you ask for headless) the find-skills skill and codegraph (code-intelligence MCP server) into your user config, and sets a status line (model, dir, git branch, context %, cost). Its `/inventory` pane lists every skill, plugin and MCP server grouped by user and project scope (a mod: needs a Claude Code build with mod support). |
+| `web` | Frontend work on shadcn/ui: `/web:setup` installs the impeccable and shadcn skills; the plugin adds the shadcn MCP server and a hook that rejects `.jsx`/`.tsx` edits using native `<button>`/`<input>`/`<select>`/... elements, other UI kits or raw Radix/Base UI imports outside `components/ui`. |
 
-`usage-dashboard` and `context-explorer` are mods (TSX hooks modules) and need a Claude Code build that supports them. The Python scripts need Python 3.8+ and use only the standard library.
+`base-setup` needs Node.js (npm/npx), Chromium and Python 3. Its installer is `base-setup/scripts/install.sh [all|agent-browser|find-skills|codegraph|statusline]`; it is idempotent. `web` needs Node.js and Python 3.
