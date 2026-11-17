@@ -42,7 +42,7 @@ Python scripts are stdlib only and are always run isolated: `python3 -I <script>
 
 ## web
 
-- `scripts/install.sh [all|impeccable|shadcn]` (run by `/web:setup`) installs the `impeccable` (pbakaus/impeccable) and `shadcn` (shadcn-ui/ui) skills globally via `npx skills`, same pattern as base-setup.
+- `scripts/install.sh [all|impeccable|shadcn]` (run by `/web:setup`) installs into the *project root* (`$CLAUDE_PROJECT_DIR`, else `git rev-parse --show-toplevel`, else cwd), unlike base-setup: `npx skills add shadcn/ui -a claude-code -y` (`.claude/skills/shadcn` plus the package's `migrate-radix-to-base`, `skills-lock.json`) and `npx impeccable install --project --providers=claude -y` (`.claude/skills/impeccable`, `.claude/agents/impeccable-*`, its hook in `.claude/settings.local.json`; the engine binary goes to `~/.impeccable/bin`). Both are idempotent.
 - `scripts/shadcn_guard.py check` is the enforcement: a `PreToolUse` hook on `Write|Edit|MultiEdit` that denies `.jsx`/`.tsx` edits whose *added* text uses a native element with a shadcn equivalent (`NATIVE` map), imports another UI kit (`OTHER_KITS`), or imports Radix/Base UI primitives (`PRIMITIVES`). Files under the shadcn ui dir (`components.json` `aliases.ui`, default `components/ui`) are exempt. Only added text is checked so legacy code never blocks unrelated edits. There is deliberately no in-file opt-out comment.
 - `shadcn_guard.py context` (SessionStart) injects the rule only in React projects (components.json, or react/next in package.json).
 - Test the guard by piping a hook payload: `echo '{"tool_name":"Write","cwd":"...","tool_input":{"file_path":"x.tsx","content":"<button/>"}}' | python3 -I web/scripts/shadcn_guard.py check`.
