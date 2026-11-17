@@ -1,8 +1,8 @@
 {
   "name": "base-setup",
   "displayName": "Base Setup",
-  "version": "0.3.0",
-  "description": "One-shot user setup (agent-browser on system Chromium, find-skills, codegraph, a status line), a browser-login skill that hands agent-browser a human-signed-in profile for sites that block automated sign-in, and an /inventory pane of skills, plugins and MCP servers by scope.",
+  "version": "0.4.0",
+  "description": "One-shot user setup (agent-browser on system Chromium, find-skills, codegraph, a status line, a tmux config), a browser-login skill that hands agent-browser a human-signed-in profile for sites that block automated sign-in, and an /inventory pane of skills, plugins and MCP servers by scope.",
   "author": {
     "name": "Kalen Cantrell"
   },
@@ -11,6 +11,7 @@
     "agent-browser",
     "skills",
     "statusline",
+    "tmux",
     "login"
   ],
   "types": "./types/index.d.ts"

@@ -15,7 +15,7 @@
     {
       "name": "base-setup",
       "source": "./base-setup",
-      "description": "User setup: agent-browser on system Chromium, the find-skills skill, and a status line"
+      "description": "User setup: agent-browser on system Chromium, the find-skills skill, codegraph, a status line and a tmux config"
     },
     {
       "name": "web",

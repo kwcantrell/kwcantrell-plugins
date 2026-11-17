@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usage: install.sh [all|agent-browser|find-skills|codegraph|statusline]...   (default: all)
+# Usage: install.sh [all|agent-browser|find-skills|codegraph|statusline|tmux]...   (default: all)
 #
 # Idempotent user-level setup. Safe to re-run; each step skips what is already done.
 #   agent-browser  npm i -g agent-browser if missing, point ~/.agent-browser/config.json
@@ -11,6 +11,9 @@
 #                  mcp__codegraph__* auto-allowed, a CodeGraph section in ~/.claude/CLAUDE.md.
 #                  Telemetry is turned off first. Index a project with `codegraph init` in it.
 #   statusline     copy statusline.py to ~/.claude/ and set statusLine in ~/.claude/settings.json.
+#   tmux           install tmux.conf as ~/.tmux.conf (a different existing file is kept as
+#                  ~/.tmux.conf.bak), clone TPM to ~/.tmux/plugins/tpm and install the config's
+#                  plugins (catppuccin, tmux-sensible), then reload a running tmux server.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -108,15 +111,53 @@ step_statusline() {
   log "status line installed ($CLAUDE_DIR/statusline.py); a previous settings.json is kept as settings.json.bak if it changed"
 }
 
+step_tmux() {
+  need tmux "Install it first (e.g. 'sudo apt install tmux' or 'brew install tmux')."
+  need git "TPM is cloned with git."
+  local conf="$HOME/.tmux.conf" plugins="$HOME/.tmux/plugins/"
+  if [ -f "$conf" ] && cmp -s "$HERE/tmux.conf" "$conf"; then
+    log "~/.tmux.conf already up to date"
+  else
+    if [ -e "$conf" ]; then cp -p "$conf" "$conf.bak"; log "previous ~/.tmux.conf kept as ~/.tmux.conf.bak"; fi
+    install -m 0644 "$HERE/tmux.conf" "$conf"
+    log "installed ~/.tmux.conf"
+  fi
+  if [ -d "${plugins}tpm" ]; then
+    log "TPM already installed"
+  else
+    log "cloning TPM to ~/.tmux/plugins/tpm"
+    git clone -q --depth 1 https://github.com/tmux-plugins/tpm "${plugins}tpm"
+  fi
+  # TPM reads its plugin path from a tmux server, so run it against a throwaway server
+  # on a private socket dir; the user's own server (if any) is untouched.
+  local sock; sock="$(mktemp -d)"
+  if ! (
+    unset TMUX
+    export TMUX_TMPDIR="$sock"
+    tmux new-session -d -s base-setup
+    tmux set-environment -g TMUX_PLUGIN_MANAGER_PATH "$plugins"
+    "${plugins}tpm/bin/install_plugins" >/dev/null
+    tmux kill-server
+  ); then
+    rm -rf "$sock"; die "TPM plugin install failed; inside tmux, press prefix + I to retry"
+  fi
+  rm -rf "$sock"
+  log "tmux plugins installed in ~/.tmux/plugins"
+  if tmux info >/dev/null 2>&1; then
+    tmux source-file "$conf" && log "reloaded the running tmux server"
+  fi
+}
+
 [ $# -eq 0 ] && set -- all
 for step in "$@"; do
   case "$step" in
-    all)           step_agent_browser; step_find_skills; step_codegraph; step_statusline ;;
+    all)           step_agent_browser; step_find_skills; step_codegraph; step_statusline; step_tmux ;;
     agent-browser) step_agent_browser ;;
     find-skills)   step_find_skills ;;
     codegraph)     step_codegraph ;;
     statusline)    step_statusline ;;
-    *) die "unknown step: $step (expected all|agent-browser|find-skills|codegraph|statusline)" ;;
+    tmux)          step_tmux ;;
+    *) die "unknown step: $step (expected all|agent-browser|find-skills|codegraph|statusline|tmux)" ;;
   esac
 done
-log "done. Restart Claude Code (or /reload-plugins) to pick up new skills and the status line."
+log "done. Restart Claude Code (or /reload-plugins) to pick up new skills and the status line; new tmux sessions use ~/.tmux.conf."
