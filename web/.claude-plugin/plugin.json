@@ -1,8 +1,8 @@
 {
   "name": "web",
-  "displayName": "Web (shadcn-only UI)",
-  "version": "0.2.0",
-  "description": "Frontend setup: installs the shadcn and impeccable skills into the project, adds the shadcn MCP server, and blocks UI that is not built from shadcn components.",
+  "displayName": "Web setup",
+  "version": "0.3.0",
+  "description": "Frontend setup: /web:setup installs the shadcn and impeccable skills into the project.",
   "author": { "name": "Kalen Cantrell" },
   "keywords": ["web", "frontend", "shadcn", "design", "react"]
 }

@@ -22,7 +22,5 @@ else the current directory), never the user config:
 - `impeccable`: `npx impeccable install` puts the `impeccable` skill in `.claude/skills/`, its agents in
   `.claude/agents/`, and its design hook in `.claude/settings.local.json`.
 
-The shadcn MCP server is bundled with the plugin and needs no install. The shadcn-only rule is enforced by the plugin's hook whether or not this has run.
-
 When it finishes, report what was installed and where, say the files can be committed so the whole team
 gets them, and say a restart (or `/reload-plugins`) picks up the new skills.

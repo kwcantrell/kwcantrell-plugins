@@ -10,7 +10,7 @@ A local collection of Claude Code plugins, one per top-level folder. `.claude-pl
 | --- | --- | --- |
 | `factory/` | Classic plugin: skills, agents, a command hook, a Python CLI | Marketplace (`factory@kwcantrell-plugins`) |
 | `base-setup/` | Skills (`/base-setup:setup` driving an idempotent installer script; model-invocable `browser-login`), plus a mod (TSX hooks module) for the `/inventory` pane | Marketplace (`base-setup@kwcantrell-plugins`) |
-| `web/` | Setup skill, bundled shadcn MCP server (`.mcp.json`), SessionStart + PreToolUse hooks | Marketplace (`web@kwcantrell-plugins`) |
+| `web/` | One skill (`/web:setup` driving an idempotent installer script); no hooks or MCP servers | Marketplace (`web@kwcantrell-plugins`) |
 
 A new plugin needs an entry in `marketplace.json` (or a plugin-dir entry) to load at all.
 
@@ -43,9 +43,7 @@ Python scripts are stdlib only and are always run isolated: `python3 -I <script>
 ## web
 
 - `scripts/install.sh [all|impeccable|shadcn]` (run by `/web:setup`) installs into the *project root* (`$CLAUDE_PROJECT_DIR`, else `git rev-parse --show-toplevel`, else cwd), unlike base-setup: `npx skills add shadcn/ui -a claude-code -y` (`.claude/skills/shadcn` plus the package's `migrate-radix-to-base`, `skills-lock.json`) and `npx impeccable install --project --providers=claude -y` (`.claude/skills/impeccable`, `.claude/agents/impeccable-*`, its hook in `.claude/settings.local.json`; the engine binary goes to `~/.impeccable/bin`). Both are idempotent.
-- `scripts/shadcn_guard.py check` is the enforcement: a `PreToolUse` hook on `Write|Edit|MultiEdit` that denies `.jsx`/`.tsx` edits whose *added* text uses a native element with a shadcn equivalent (`NATIVE` map), imports another UI kit (`OTHER_KITS`), or imports Radix/Base UI primitives (`PRIMITIVES`). Files under the shadcn ui dir (`components.json` `aliases.ui`, default `components/ui`) are exempt. Only added text is checked so legacy code never blocks unrelated edits. There is deliberately no in-file opt-out comment.
-- `shadcn_guard.py context` (SessionStart) injects the rule only in React projects (components.json, or react/next in package.json).
-- Test the guard by piping a hook payload: `echo '{"tool_name":"Write","cwd":"...","tool_input":{"file_path":"x.tsx","content":"<button/>"}}' | python3 -I web/scripts/shadcn_guard.py check`.
+- The plugin is only `skills/setup` + `scripts/install.sh`. It deliberately ships no hooks and no `.mcp.json`; anything that runs in a project (impeccable's hook, skills) is installed into that project by the script.
 
 ## factory
 

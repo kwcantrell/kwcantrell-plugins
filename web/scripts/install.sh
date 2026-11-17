@@ -6,7 +6,6 @@
 #   impeccable  npx impeccable install            -> .claude/skills/impeccable, .claude/agents/impeccable-*,
 #                                                    its design hook in .claude/settings.local.json
 # The project root is $CLAUDE_PROJECT_DIR, else the git top level, else the current directory.
-# The shadcn MCP server ships with the plugin (.mcp.json) and needs no install.
 set -euo pipefail
 
 log() { printf '\033[36m[web]\033[0m %s\n' "$*"; }

@@ -4,7 +4,7 @@
     "name": "Kalen Cantrell"
   },
   "metadata": {
-    "description": "Kalen Cantrell's Claude Code plugins: a multi-agent software factory, a base user setup and a shadcn-only web setup"
+    "description": "Kalen Cantrell's Claude Code plugins: a multi-agent software factory, a base user setup and a web setup"
   },
   "plugins": [
     {
@@ -20,7 +20,7 @@
     {
       "name": "web",
       "source": "./web",
-      "description": "Frontend: impeccable and shadcn skills, the shadcn MCP server, and a hook that enforces shadcn-only UI"
+      "description": "Frontend setup: /web:setup installs the shadcn and impeccable skills into the project"
     }
   ]
 }
