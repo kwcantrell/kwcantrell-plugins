@@ -4,11 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A local collection of Claude Code plugins, one per top-level folder. `.claude-plugin/marketplace.json` publishes them as the marketplace `kwcantrell-plugins` (GitHub `kwcantrell/kwcantrell-plugins`, public).
+A local collection of Claude Code plugins, one per top-level folder. `.claude-plugin/marketplace.json` publishes them as the marketplace `kwcantrell-plugins` (GitHub `kwcantrell/kwcantrell-plugins`, public). The Software Factory plugin moved to `kwcantrell/software-factory` (marketplace `software-factory`); it is no longer in this repo.
 
 | Folder | Kind | How it is loaded here |
 | --- | --- | --- |
-| `factory/` | Classic plugin: skills, agents, a command hook, a Python CLI | Marketplace (`factory@kwcantrell-plugins`) |
 | `base-setup/` | Skills (`/base-setup:setup` driving an idempotent installer script; model-invocable `browser-login`), plus a mod (TSX hooks module) for the `/inventory` pane | Marketplace (`base-setup@kwcantrell-plugins`) |
 | `web/` | One skill (`/web:setup` driving an idempotent installer script); no hooks or MCP servers | Marketplace (`web@kwcantrell-plugins`) |
 
@@ -24,9 +23,7 @@ tsc -p base-setup                        # typecheck the mod (needs .claude-plug
 
 There is no package.json, build step or linter; everything ships as source.
 
-Python scripts are stdlib only and are always run isolated: `python3 -I <script> ...`. Each script's module docstring is its usage line. Notable:
-
-- `factory/bin/factory --help` lists every factory CLI command; `factory status` and `factory stats` are read-only.
+Python scripts are stdlib only and are always run isolated: `python3 -I <script> ...`. Each script's module docstring is its usage line.
 
 ## base-setup
 
@@ -44,14 +41,3 @@ Python scripts are stdlib only and are always run isolated: `python3 -I <script>
 
 - `scripts/install.sh [all|impeccable|shadcn]` (run by `/web:setup`) installs into the *project root* (`$CLAUDE_PROJECT_DIR`, else `git rev-parse --show-toplevel`, else cwd), unlike base-setup: `npx skills add shadcn/ui -a claude-code -y` (`.claude/skills/shadcn` plus the package's `migrate-radix-to-base`, `skills-lock.json`) and `npx impeccable install --project --providers=claude -y` (`.claude/skills/impeccable`, `.claude/agents/impeccable-*`, its hook in `.claude/settings.local.json`; the engine binary goes to `~/.impeccable/bin`). Both are idempotent.
 - The plugin is only `skills/setup` + `scripts/install.sh`. It deliberately ships no hooks and no `.mcp.json`; anything that runs in a project (impeccable's hook, skills) is installed into that project by the script.
-
-## factory
-
-Read `factory/README.md` for the pipeline (intake -> build -> proof -> review -> ship -> done) and its design rationale. Key points when changing it:
-
-- `factory/bin/factory` (single Python file) is the state machine and the only writer of `job.json`. Gates live there, not in prompts: exit 1 = refused, 2 = escalated to a human.
-- Station prompts: `skills/run/SKILL.md` (supervisor), `agents/*.md` (builder, verifier, three reviewers). `skills/approve` and `skills/ship` are human-only.
-- `scripts/human-gate.sh` (a `PreToolUse` Bash hook) turns `factory merge|approve|rework` into a permission prompt. A new human-only command must be added there too.
-- `dashboard/index.html` is one dependency-free file that polls `jobs/*/job.json` through a plain directory-listing server. Fields added to `job.json` need handling there.
-- Runtime state goes in the *target* project's `factory/` dir (`jobs/`, `worktrees/`); this repo's `factory/` folder is the plugin source, not runtime state.
-- Optional per-project config is `factory.json`; the CLI refuses unknown keys, so new settings must be added to `DEFAULTS` and validation.
